@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, #063f2d, #0b5a3f);
+      color: #063f2d;
+    }
+
+    .card {
+      max-width: 430px;
+      margin: 0 auto;
+      background: #fff8ea;
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.22);
+      text-align: center;
+    }
+
+    h1 {
+      color: #0b5a3f;
+      font-size: 24px;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #d9931f;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 15px;
+      border-radius: 14px;
+      border: 1px solid #ddd;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 15px;
+      border: none;
+      border-radius: 14px;
+      background: #d9931f;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .box {
+      margin-top: 20px;
+      background: white;
+      border-radius: 20px;
+      padding: 18px;
+      text-align: left;
+    }
+
+    .level {
+      text-align: center;
+      background: #0b5a3f;
+      color: white;
+      padding: 10px;
+      border-radius: 14px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .point {
+      text-align: center;
+      font-size: 42px;
+      font-weight: bold;
+      color: #d9931f;
+      margin: 16px 0;
+    }
+
+    .row {
+      padding: 8px 0;
+      border-bottom: 1px solid #f2eadc;
+    }
+
+    .loading, .error {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 14px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .loading {
+      background: #eef7f2;
+      color: #0b5a3f;
+    }
+
+    .error {
+      background: #ffe5e5;
+      color: #b00020;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>🐾 HUGPAENG FAMILY</h1>
+    <div class="subtitle">ดูแลด้วยหัวใจ และเติบโตไปพร้อมกัน</div>
+
+    <div id="result" class="loading">กำลังเข้าสู่ระบบ LINE...</div>
+  </div>
+
+  <script>
+    const LIFF_ID = "2010307463-T9kVRpcj";
+
+    const API_URL = "https://script.google.com/macros/s/AKfycbzI4JBgyC74yfJoRhGh068wmxFo6abwmly9IqngiN0_FnXCMTKmVCAodaLdfHq1WufUJQ/exec";
+
+    let currentLineUserId = "";
+
+    function jsonp(url) {
+      return new Promise((resolve, reject) => {
+        const callbackName = "jsonp_callback_" + Math.round(100000 * Math.random());
+
+        window[callbackName] = function(data) {
+          delete window[callbackName];
+          document.body.removeChild(script);
+          resolve(data);
+        };
+
+        const script = document.createElement("script");
+        script.src = url + "&callback=" + callbackName;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+    }
+
+    async function main() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const profile = await liff.getProfile();
+        currentLineUserId = profile.userId;
+
+        const data = await jsonp(
+          API_URL + "?action=getByLineUserId&lineUserId=" + encodeURIComponent(currentLineUserId)
+        );
+
+        if (data && data.found) {
+          showMember(data);
+        } else {
+          showBindForm();
+        }
+
+      } catch (err) {
+        document.getElementById("result").innerHTML =
+          '<div class="error">เกิดข้อผิดพลาด: ' + err.message + "</div>";
+      }
+    }
+
+    function showBindForm() {
+      document.getElementById("result").innerHTML = `
+        <div class="box">
+          <h3 style="text-align:center;">ผูกข้อมูลสมาชิกครั้งแรก</h3>
+          <p style="text-align:center;">กรอกเบอร์โทรศัพท์ที่ใช้สมัครสมาชิก</p>
+          <input id="phone" type="tel" placeholder="เช่น 0925424461">
+          <button onclick="bindMember()">ยืนยันข้อมูลสมาชิก</button>
+        </div>
+      `;
+    }
+
+    async function bindMember() {
+      const phone = document.getElementById("phone").value.trim();
+
+      if (!phone) {
+        document.getElementById("result").innerHTML =
+          '<div class="error">กรุณากรอกเบอร์โทรศัพท์</div>';
+        setTimeout(showBindForm, 1200);
+        return;
+      }
+
+      document.getElementById("result").innerHTML =
+        '<div class="loading">กำลังผูกข้อมูลสมาชิก...</div>';
+
+      const data = await jsonp(
+        API_URL +
+        "?action=bindByPhone&phone=" + encodeURIComponent(phone) +
+        "&lineUserId=" + encodeURIComponent(currentLineUserId)
+      );
+
+      if (data && data.found) {
+        showMember(data);
+      } else {
+        document.getElementById("result").innerHTML =
+          '<div class="error">' + (data.error || "ไม่พบข้อมูลสมาชิก") + "</div>";
+        setTimeout(showBindForm, 1800);
+      }
+    }
+
+    function showMember(data) {
+      document.getElementById("result").innerHTML = `
+        <div class="box">
+          <h3 style="text-align:center;">🐾 ข้อมูลสมาชิก</h3>
+          <div class="level">${data.level}</div>
+
+          <div class="row"><b>ชื่อ:</b> ${data.name}</div>
+          <div class="row"><b>เบอร์โทร:</b> ${data.phone}</div>
+          <div class="row"><b>Member ID:</b> ${data.memberId}</div>
+
+          <div class="point">${data.point} คะแนน</div>
+
+          <div class="row"><b>คูปอง:</b> ${data.coupon}</div>
+          <div class="row"><b>ยอดซื้อสะสม:</b> ${data.totalSpend} บาท</div>
+          <div class="row"><b>สถานะ:</b> ${data.status}</div>
+        </div>
+      `;
+    }
+
+    main();
+  </script>
+</body>
+</html>
