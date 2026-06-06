@@ -1,180 +1,452 @@
-<script>
-  const LIFF_ID = "2010307463-T9kVRpcj";
-  const API_URL = "https://script.google.com/macros/s/AKfycbzI4JBgyC74yfJoRhGh068wmxFo6abwmly9IqngiN0_FnXCMTKmVCAodaLdfHq1WufUJQ/exec";
-  let currentLineUserId = "";
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  function getLevelInfo(point) {
-    point = Number(String(point).replace(/,/g, "")) || 0;
+  <style>
+    * { box-sizing: border-box; }
 
-    if (point >= 3000) {
-      return {
-        level: "PLATINIUM",
-        nextLevel: "สูงสุดแล้ว",
-        remain: 0,
-        percent: 100,
-        color: "#1f1f1f"
-      };
+    body {
+      margin: 0;
+      padding: 18px;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, #063f2d, #0b5a3f);
+      color: #063f2d;
     }
 
-    if (point >= 1500) {
-      return {
-        level: "GOLD",
-        nextLevel: "PLATINIUM",
-        remain: 3000 - point,
-        percent: (point / 3000) * 100,
-        color: "#d9931f"
-      };
+    .wrap {
+      max-width: 430px;
+      margin: 0 auto;
     }
 
-    if (point >= 500) {
-      return {
-        level: "SILVER",
-        nextLevel: "GOLD",
-        remain: 1500 - point,
-        percent: (point / 1500) * 100,
-        color: "#9ca3af"
-      };
+    .hero {
+      background: #fff8ea;
+      border-radius: 28px;
+      padding: 22px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,.2);
     }
 
-    return {
-      level: "BRONZE",
-      nextLevel: "SILVER",
-      remain: 500 - point,
-      percent: (point / 500) * 100,
-      color: "#a16207"
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #0b5a3f;
+    }
+
+    .subtitle {
+      color: #d9931f;
+      font-weight: bold;
+      margin: 8px 0 18px;
+      font-size: 15px;
+    }
+
+    .loading, .error {
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: 16px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .loading {
+      background: #eef7f2;
+      color: #0b5a3f;
+    }
+
+    .error {
+      background: #ffe5e5;
+      color: #b00020;
+      word-break: break-word;
+    }
+
+    .info-box {
+      margin-top: 18px;
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 18px;
+      text-align: left;
+    }
+
+    input {
+      width: 100%;
+      padding: 15px;
+      border-radius: 14px;
+      border: 1px solid #ddd;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 15px;
+      border: none;
+      border-radius: 14px;
+      background: #d9931f;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .member-card {
+      background: linear-gradient(160deg, #0b5a3f, #063f2d);
+      color: #fff8ea;
+      border-radius: 26px;
+      padding: 22px;
+      text-align: center;
+      box-shadow: inset 0 0 0 2px rgba(217,147,31,.45);
+    }
+
+    .card-title {
+      color: #d9931f;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+
+    .level {
+      display: inline-block;
+      background: #d9931f;
+      color: #ffffff;
+      padding: 9px 22px;
+      border-radius: 999px;
+      font-weight: bold;
+      margin: 10px 0 16px;
+      font-size: 16px;
+    }
+
+    .name {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .member-id {
+      font-size: 17px;
+      color: #ffe7b0;
+      margin-bottom: 14px;
+    }
+
+    .qr-box {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 16px;
+      margin: 16px auto;
+      width: 220px;
+    }
+
+    .qr-box img {
+      width: 100%;
+      display: block;
+    }
+
+    .point {
+      font-size: 38px;
+      font-weight: bold;
+      color: #d9931f;
+      margin: 14px 0 4px;
+    }
+
+    .point-label {
+      font-size: 14px;
+      color: #fff8ea;
+      margin-bottom: 10px;
+    }
+
+    .progress-bg {
+      background: rgba(255,255,255,.18);
+      border-radius: 999px;
+      height: 12px;
+      margin-top: 14px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: #d9931f;
+    }
+
+    .next-text {
+      font-size: 13px;
+      margin-top: 10px;
+      color: #fff8ea;
+      line-height: 1.4;
+    }
+
+    .row {
+      padding: 10px 0;
+      border-bottom: 1px solid #f2eadc;
+      font-size: 16px;
+    }
+
+    .row:last-child { border-bottom: none; }
+
+    .label {
+      font-weight: bold;
+      color: #0b5a3f;
+    }
+
+    .footer {
+      text-align: center;
+      color: #fff8ea;
+      font-size: 12px;
+      margin-top: 16px;
+      opacity: .85;
+    }
+
+    .debug {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #777;
+      word-break: break-word;
+      text-align: left;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>🐾 HUGPAENG FAMILY</h1>
+      <div class="subtitle">ดูแลด้วยหัวใจ และเติบโตไปพร้อมกัน</div>
+      <div id="result" class="loading">กำลังเริ่มระบบ...</div>
+    </div>
+    <div class="footer">HUGPAENG PET WORLD</div>
+  </div>
+
+  <script>
+    const LIFF_ID = "2010307463-T9kVRpcj";
+    const API_URL = "https://script.google.com/macros/s/AKfycbzI4JBgyC74yfJoRhGh068wmxFo6abwmly9IqngiN0_FnXCMTKmVCAodaLdfHq1WufUJQ/exec";
+
+    let currentLineUserId = "";
+
+    function setResult(html) {
+      document.getElementById("result").innerHTML = html;
+    }
+
+    function showLoading(text) {
+      setResult('<div class="loading">' + text + '</div>');
+    }
+
+    function showError(text) {
+      setResult('<div class="error">เกิดข้อผิดพลาด:<br>' + text + '</div>');
+    }
+
+    window.onerror = function(message, source, lineno, colno, error) {
+      showError(String(message) + "<br>Line: " + lineno);
+      return true;
     };
-  }
 
-  function jsonp(url) {
-    return new Promise((resolve, reject) => {
-      const callbackName = "jsonp_callback_" + Math.round(100000 * Math.random());
-      const script = document.createElement("script");
+    window.onunhandledrejection = function(event) {
+      showError(event.reason && event.reason.message ? event.reason.message : String(event.reason));
+    };
 
-      window[callbackName] = function(data) {
-        delete window[callbackName];
-        document.body.removeChild(script);
-        resolve(data);
+    function jsonp(url) {
+      return new Promise((resolve, reject) => {
+        const callbackName = "jsonp_callback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+        const script = document.createElement("script");
+
+        window[callbackName] = function(data) {
+          try {
+            delete window[callbackName];
+            document.body.removeChild(script);
+          } catch(e) {}
+          resolve(data);
+        };
+
+        script.onerror = function() {
+          reject(new Error("ไม่สามารถเชื่อมต่อ Apps Script API ได้"));
+        };
+
+        script.src = url + "&callback=" + callbackName + "&t=" + Date.now();
+        document.body.appendChild(script);
+
+        setTimeout(() => {
+          if (window[callbackName]) {
+            try {
+              delete window[callbackName];
+              document.body.removeChild(script);
+            } catch(e) {}
+            reject(new Error("Apps Script API ตอบกลับช้าเกินไป"));
+          }
+        }, 15000);
+      });
+    }
+
+    function getLevelInfo(point) {
+      point = Number(String(point).replace(/,/g, "")) || 0;
+
+      if (point >= 3000) {
+        return {
+          level: "PLATINIUM",
+          nextLevel: "สูงสุดแล้ว",
+          remain: 0,
+          percent: 100,
+          color1: "#1f1f1f",
+          color2: "#063f2d"
+        };
+      }
+
+      if (point >= 1500) {
+        return {
+          level: "GOLD",
+          nextLevel: "PLATINIUM",
+          remain: 3000 - point,
+          percent: (point / 3000) * 100,
+          color1: "#d9931f",
+          color2: "#063f2d"
+        };
+      }
+
+      if (point >= 500) {
+        return {
+          level: "SILVER",
+          nextLevel: "GOLD",
+          remain: 1500 - point,
+          percent: (point / 1500) * 100,
+          color1: "#8f969e",
+          color2: "#063f2d"
+        };
+      }
+
+      return {
+        level: "BRONZE",
+        nextLevel: "SILVER",
+        remain: 500 - point,
+        percent: (point / 500) * 100,
+        color1: "#a16207",
+        color2: "#063f2d"
       };
+    }
 
-      script.src = url + "&callback=" + callbackName;
-      script.onerror = function() {
-        reject(new Error("ไม่สามารถเชื่อมต่อ API ได้"));
-      };
+    async function main() {
+      try {
+        showLoading("กำลังเชื่อมต่อ LINE...");
 
-      document.body.appendChild(script);
-    });
-  }
+        if (typeof liff === "undefined") {
+          showError("โหลด LIFF SDK ไม่สำเร็จ");
+          return;
+        }
 
-  async function main() {
-    try {
-      await liff.init({ liffId: LIFF_ID });
+        await liff.init({ liffId: LIFF_ID });
 
-      if (!liff.isLoggedIn()) {
-        liff.login();
+        showLoading("เชื่อมต่อ LINE สำเร็จ กำลังตรวจสอบการเข้าสู่ระบบ...");
+
+        if (!liff.isLoggedIn()) {
+          showLoading("กำลังเข้าสู่ระบบ LINE...");
+          liff.login();
+          return;
+        }
+
+        showLoading("กำลังดึงข้อมูล LINE Profile...");
+
+        const profile = await liff.getProfile();
+        currentLineUserId = profile.userId;
+
+        showLoading("กำลังโหลดข้อมูลสมาชิก...");
+
+        const data = await jsonp(
+          API_URL + "?action=getByLineUserId&lineUserId=" + encodeURIComponent(currentLineUserId)
+        );
+
+        if (data && data.found) {
+          showMember(data);
+        } else {
+          showBindForm();
+        }
+
+      } catch (err) {
+        showError(err && err.message ? err.message : String(err));
+      }
+    }
+
+    function showBindForm() {
+      setResult(`
+        <div class="info-box">
+          <h3 style="text-align:center;">ผูกข้อมูลสมาชิกครั้งแรก</h3>
+          <p style="text-align:center;">กรอกเบอร์โทรศัพท์ที่ใช้สมัครสมาชิก</p>
+          <input id="phone" type="tel" placeholder="เช่น 0925424461">
+          <button onclick="bindMember()">ยืนยันข้อมูลสมาชิก</button>
+        </div>
+      `);
+    }
+
+    async function bindMember() {
+      const phoneInput = document.getElementById("phone");
+      const phone = phoneInput ? phoneInput.value.trim() : "";
+
+      if (!phone) {
+        showError("กรุณากรอกเบอร์โทรศัพท์");
+        setTimeout(showBindForm, 1200);
         return;
       }
 
-      const profile = await liff.getProfile();
-      currentLineUserId = profile.userId;
+      try {
+        showLoading("กำลังผูกข้อมูลสมาชิก...");
 
-      const data = await jsonp(
-        API_URL + "?action=getByLineUserId&lineUserId=" + encodeURIComponent(currentLineUserId)
-      );
+        const data = await jsonp(
+          API_URL +
+          "?action=bindByPhone&phone=" + encodeURIComponent(phone) +
+          "&lineUserId=" + encodeURIComponent(currentLineUserId)
+        );
 
-      if (data && data.found) {
-        showMember(data);
-      } else {
-        showBindForm();
+        if (data && data.found) {
+          showMember(data);
+        } else {
+          showError(data && data.error ? data.error : "ไม่พบข้อมูลสมาชิก");
+          setTimeout(showBindForm, 1800);
+        }
+
+      } catch (err) {
+        showError(err && err.message ? err.message : String(err));
       }
-
-    } catch (err) {
-      document.getElementById("result").innerHTML =
-        '<div class="error">เกิดข้อผิดพลาด: ' + err.message + "</div>";
-    }
-  }
-
-  function showBindForm() {
-    document.getElementById("result").innerHTML = `
-      <div class="info-box">
-        <h3 style="text-align:center;">ผูกข้อมูลสมาชิกครั้งแรก</h3>
-        <p style="text-align:center;">กรอกเบอร์โทรศัพท์ที่ใช้สมัครสมาชิก</p>
-        <input id="phone" type="tel" placeholder="เช่น 0925424461">
-        <button onclick="bindMember()">ยืนยันข้อมูลสมาชิก</button>
-      </div>
-    `;
-  }
-
-  async function bindMember() {
-    const phone = document.getElementById("phone").value.trim();
-
-    if (!phone) {
-      document.getElementById("result").innerHTML =
-        '<div class="error">กรุณากรอกเบอร์โทรศัพท์</div>';
-      setTimeout(showBindForm, 1200);
-      return;
     }
 
-    document.getElementById("result").innerHTML =
-      '<div class="loading">กำลังผูกข้อมูลสมาชิก...</div>';
+    function showMember(data) {
+      const point = Number(String(data.point || "0").replace(/,/g, "")) || 0;
+      const levelInfo = getLevelInfo(point);
 
-    const data = await jsonp(
-      API_URL +
-      "?action=bindByPhone&phone=" + encodeURIComponent(phone) +
-      "&lineUserId=" + encodeURIComponent(currentLineUserId)
-    );
+      const qrData = encodeURIComponent(data.memberId || "");
+      const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + qrData;
 
-    if (data && data.found) {
-      showMember(data);
-    } else {
-      document.getElementById("result").innerHTML =
-        '<div class="error">' + (data.error || "ไม่พบข้อมูลสมาชิก") + "</div>";
-      setTimeout(showBindForm, 1800);
+      const nextText = levelInfo.remain === 0
+        ? "คุณอยู่ในระดับสูงสุดแล้ว"
+        : "สะสมคะแนนอีก " + levelInfo.remain.toLocaleString() + " คะแนน เพื่อปรับระดับเป็น " + levelInfo.nextLevel;
+
+      setResult(`
+        <div class="member-card" style="background:linear-gradient(160deg, ${levelInfo.color1}, ${levelInfo.color2});">
+          <div class="card-title">DIGITAL MEMBER CARD</div>
+          <div class="level">${levelInfo.level}</div>
+
+          <div class="name">${data.name || "-"}</div>
+          <div class="member-id">${data.memberId || "-"}</div>
+
+          <div class="qr-box">
+            <img src="${qrUrl}" alt="Member QR Code">
+          </div>
+
+          <div class="point">${point.toLocaleString()}</div>
+          <div class="point-label">คะแนนสะสม</div>
+
+          <div class="progress-bg">
+            <div class="progress-bar" style="width:${Math.min(levelInfo.percent, 100)}%;"></div>
+          </div>
+
+          <div class="next-text">${nextText}</div>
+        </div>
+
+        <div class="info-box">
+          <div class="row"><span class="label">เบอร์โทร:</span> ${data.phone || "-"}</div>
+          <div class="row"><span class="label">คูปอง:</span> ${data.coupon || "0"}</div>
+          <div class="row"><span class="label">ยอดซื้อสะสม:</span> ${data.totalSpend || "0"} บาท</div>
+          <div class="row"><span class="label">สถานะ:</span> ${data.status || "Active"}</div>
+        </div>
+      `);
     }
-  }
 
-  function showMember(data) {
-    const point = Number(String(data.point).replace(/,/g, "")) || 0;
-    const levelInfo = getLevelInfo(point);
-    const qrData = encodeURIComponent(data.memberId || "");
-    const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + qrData;
-
-    const nextText = levelInfo.remain === 0
-      ? "คุณอยู่ในระดับสูงสุดแล้ว"
-      : `สะสมคะแนนอีก ${levelInfo.remain.toLocaleString()} คะแนน เพื่อปรับระดับเป็น ${levelInfo.nextLevel}`;
-
-    document.getElementById("result").innerHTML = `
-      <div class="member-card" style="background:linear-gradient(160deg, ${levelInfo.color}, #063f2d);">
-        <div class="card-title">DIGITAL MEMBER CARD</div>
-
-        <div class="level">${levelInfo.level}</div>
-
-        <div class="name">${data.name}</div>
-        <div class="member-id">${data.memberId}</div>
-
-        <div class="qr-box">
-          <img src="${qrUrl}" alt="Member QR Code">
-        </div>
-
-        <div class="point">${point.toLocaleString()}</div>
-        <div class="point-label">คะแนนสะสม</div>
-
-        <div style="background:rgba(255,255,255,.18);border-radius:999px;height:12px;margin-top:14px;overflow:hidden;">
-          <div style="width:${Math.min(levelInfo.percent,100)}%;height:100%;background:#d9931f;"></div>
-        </div>
-
-        <div style="font-size:13px;margin-top:10px;color:#fff8ea;">
-          ${nextText}
-        </div>
-      </div>
-
-      <div class="info-box">
-        <div class="row"><span class="label">เบอร์โทร:</span> ${data.phone}</div>
-        <div class="row"><span class="label">คูปอง:</span> ${data.coupon}</div>
-        <div class="row"><span class="label">ยอดซื้อสะสม:</span> ${data.totalSpend} บาท</div>
-        <div class="row"><span class="label">สถานะ:</span> ${data.status}</div>
-      </div>
-    `;
-  }
-
-  main();
-</script>
+    document.addEventListener("DOMContentLoaded", main);
+  </script>
+</body>
+</html>
